@@ -39,18 +39,29 @@ check_nodejs_version() {
 install_nvm() {
     echo "正在安装 NVM..."
     
-    # 尝试使用 curl，失败则使用 wget
+    # 设置 NVM 目录
+    export NVM_DIR="$HOME/.nvm"
+    
+    # 如果目录已存在，先删除
+    if [ -d "$NVM_DIR" ]; then
+        rm -rf "$NVM_DIR"
+    fi
+    
+    # 创建 NVM 目录
+    mkdir -p "$NVM_DIR"
+    
+    # 直接下载 NVM 压缩包（绕过 git clone）
+    echo "正在下载 NVM v0.39.0..."
     if command -v curl >/dev/null 2>&1; then
-        curl -o- https://gitee.com/mirrors/nvm/raw/v0.39.0/install.sh | bash
+        curl -L https://github.com/nvm-sh/nvm/archive/v0.39.0.tar.gz | tar -xz -C "$NVM_DIR" --strip-components=1
     elif command -v wget >/dev/null 2>&1; then
-        wget -qO- https://gitee.com/mirrors/nvm/raw/v0.39.0/install.sh | bash
+        wget -qO- https://github.com/nvm-sh/nvm/archive/v0.39.0.tar.gz | tar -xz -C "$NVM_DIR" --strip-components=1
     else
         echo "错误：需要 curl 或 wget 来下载 NVM"
         exit 1
     fi
     
     # 重新加载环境变量
-    export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
     [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
     
@@ -59,6 +70,14 @@ install_nvm() {
         PROFILE="$HOME/.zshrc"
     else
         PROFILE="$HOME/.bashrc"
+    fi
+    
+    # 添加 NVM 到配置文件
+    echo "正在配置环境变量..."
+    if ! grep -q "NVM_DIR" "$PROFILE" 2>/dev/null; then
+        echo 'export NVM_DIR="$HOME/.nvm"' >> "$PROFILE"
+        echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> "$PROFILE"
+        echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> "$PROFILE"
     fi
     
     # 配置 NVM 国内镜像
@@ -71,6 +90,8 @@ install_nvm() {
     echo 'export NVM_NPM_MIRROR=https://npmmirror.com/mirrors/npm/' >> "$PROFILE"
     
     source "$PROFILE" 2>/dev/null || true
+    
+    echo "NVM 安装完成！"
 }
 
 # 函数：通过 NVM 安装 Node.js
